@@ -127,7 +127,8 @@ function processData(data) {
             '등록일': article.articleConfirmYmd,
             '동': article.buildingName,
             '중개사무소': article.realtorName,
-            '특징': tags
+            '특징': tags,
+            '특징설명': article.articleFeatureDesc || ''
         };
         processedData.push(processedArticle);
     }
