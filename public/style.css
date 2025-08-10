@@ -183,6 +183,82 @@ button:disabled {
     background-color: #f9f9f9;
 }
 
+/* 테이블 정렬 및 페이지네이션 스타일 */
+.table-info {
+    margin: 10px 0;
+    font-size: 14px;
+    color: var(--secondary-text);
+    text-align: center;
+}
+
+.sortable-header {
+    background-color: var(--accent-color-1) !important;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.sortable-header:hover {
+    background-color: #e8d5b0 !important;
+}
+
+.sorted {
+    background-color: #d4c5a0 !important;
+    font-weight: bold;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.pagination button {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    background-color: white;
+    color: var(--primary-text);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.pagination button:hover {
+    background-color: var(--accent-color-1);
+    border-color: var(--secondary-text);
+}
+
+.pagination button.active {
+    background-color: var(--accent-color-2);
+    color: white;
+    border-color: var(--accent-color-2);
+}
+
+.pagination span {
+    padding: 8px 4px;
+    color: var(--secondary-text);
+    font-size: 14px;
+}
+
+/* 반응형 테이블 개선 */
+@media (max-width: 768px) {
+    .pagination {
+        gap: 3px;
+    }
+    
+    .pagination button {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .table-info {
+        font-size: 12px;
+    }
+}
+
 footer {
     text-align: center;
     margin-top: 30px;

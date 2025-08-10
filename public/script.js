@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableContainer = document.getElementById('table-container');
 
     let fetchedData = []; // 데이터 수집 결과를 저장할 변수
+    let currentPage = 1; // 현재 페이지
+    let itemsPerPage = 50; // 페이지당 항목 수
+    let sortColumn = null; // 정렬 중인 컬럼
+    let sortDirection = 'asc'; // 정렬 방향
 
     // --- 이벤트 리스너 설정 ---
     searchBtn.addEventListener('click', searchComplexes);
@@ -65,10 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
             complexes.forEach((c, index) => {
                 console.log(`Complex ${index}:`, c);
                 const option = document.createElement('option');
-                // complexNo를 option의 value로 저장
-                option.value = c.complexNo;
-                console.log(`Setting option value to: ${c.complexNo}`);
-                option.textContent = `${c.complexName} (${c.address})`
+                
+                // complexNo 대신 다른 ID 필드 사용 (API에서 자동 매핑됨)
+                const complexId = c.complexNo || c.complexId || c.id || c.houseId || c.aptId || index;
+                option.value = complexId;
+                console.log(`Setting option value to: ${complexId}`);
+                
+                // 고유번호 표시 제거, 주소만 표시
+                option.textContent = `${c.complexName} (${c.address || c.location || ''})`;
                 complexDropdown.appendChild(option);
             });
 
@@ -118,7 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            renderTable(fetchedData);
+            currentPage = 1; // 새 데이터 시 첫 페이지로
+            renderTable();
             updateStatus(`총 ${fetchedData.length}개의 매물을 찾았습니다.`, false);
             downloadBtn.disabled = false;
 
@@ -150,37 +159,182 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatus('엑셀 파일을 다운로드합니다.', false);
     }
 
-    /** 4. 테이블 렌더링 함수 */
-    function renderTable(data) {
-        const table = document.createElement('table');
-        const thead = document.createElement('thead');
-        const tbody = document.createElement('tbody');
+    /** 4. 데이터 정렬 함수 */
+    function sortData(column) {
+        if (sortColumn === column) {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortColumn = column;
+            sortDirection = 'asc';
+        }
 
-        // 헤더 생성
-        const headers = Object.keys(data[0]);
+        fetchedData.sort((a, b) => {
+            let valueA = a[column] || '';
+            let valueB = b[column] || '';
+
+            // 숫자인 경우 숫자 비교
+            if (!isNaN(valueA) && !isNaN(valueB)) {
+                valueA = parseFloat(valueA);
+                valueB = parseFloat(valueB);
+            }
+
+            if (sortDirection === 'asc') {
+                return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+            } else {
+                return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+            }
+        });
+
+        currentPage = 1; // 정렬 후 첫 페이지로
+        renderTable();
+    }
+
+    /** 5. 테이블 렌더링 함수 (페이지네이션 포함) */
+    function renderTable() {
+        if (fetchedData.length === 0) return;
+
+        // 페이지네이션 계산
+        const totalItems = fetchedData.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+        const currentData = fetchedData.slice(startIndex, endIndex);
+
+        // 테이블 생성
+        const table = document.createElement('table');
+        table.className = 'data-table';
+
+        // 헤더 생성 (클릭 가능한 정렬 헤더)
+        const headers = Object.keys(fetchedData[0]);
+        const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        headers.forEach(headerText => {
+        
+        headers.forEach(header => {
             const th = document.createElement('th');
-            th.textContent = headerText;
+            th.textContent = header;
+            th.style.cursor = 'pointer';
+            th.className = 'sortable-header';
+            
+            // 현재 정렬 중인 컬럼 표시
+            if (sortColumn === header) {
+                th.textContent += sortDirection === 'asc' ? ' ↑' : ' ↓';
+                th.classList.add('sorted');
+            }
+            
+            th.addEventListener('click', () => sortData(header));
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
 
-        // 본문 생성
-        data.forEach(row => {
-            const bodyRow = document.createElement('tr');
+        // 데이터 행 생성
+        const tbody = document.createElement('tbody');
+        currentData.forEach((item, index) => {
+            const row = document.createElement('tr');
             headers.forEach(header => {
                 const td = document.createElement('td');
-                td.textContent = row[header];
-                bodyRow.appendChild(td);
+                if (header === '순번') {
+                    td.textContent = startIndex + index + 1;
+                } else {
+                    td.textContent = item[header] || '';
+                }
+                row.appendChild(td);
             });
-            tbody.appendChild(bodyRow);
+            tbody.appendChild(row);
         });
 
         table.appendChild(thead);
         table.appendChild(tbody);
-        tableContainer.innerHTML = ''; // 기존 테이블 삭제
+
+        // 페이지네이션 컨트롤 생성
+        const pagination = createPagination(totalPages, currentPage);
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'table-info';
+        infoDiv.textContent = `${startIndex + 1}-${endIndex} / 총 ${totalItems}개 (${totalPages}페이지)`;
+
+        // 컨테이너 업데이트
+        tableContainer.innerHTML = '';
+        tableContainer.appendChild(infoDiv);
         tableContainer.appendChild(table);
+        tableContainer.appendChild(pagination);
+    }
+
+    /** 6. 페이지네이션 컨트롤 생성 */
+    function createPagination(totalPages, current) {
+        const pagination = document.createElement('div');
+        pagination.className = 'pagination';
+
+        // 이전 버튼
+        if (current > 1) {
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '이전';
+            prevBtn.addEventListener('click', () => {
+                currentPage = current - 1;
+                renderTable();
+            });
+            pagination.appendChild(prevBtn);
+        }
+
+        // 페이지 번호 버튼들
+        const startPage = Math.max(1, current - 2);
+        const endPage = Math.min(totalPages, current + 2);
+
+        if (startPage > 1) {
+            const firstBtn = document.createElement('button');
+            firstBtn.textContent = '1';
+            firstBtn.addEventListener('click', () => {
+                currentPage = 1;
+                renderTable();
+            });
+            pagination.appendChild(firstBtn);
+            
+            if (startPage > 2) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                pagination.appendChild(dots);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.textContent = i;
+            if (i === current) {
+                pageBtn.classList.add('active');
+            }
+            pageBtn.addEventListener('click', () => {
+                currentPage = i;
+                renderTable();
+            });
+            pagination.appendChild(pageBtn);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                pagination.appendChild(dots);
+            }
+            
+            const lastBtn = document.createElement('button');
+            lastBtn.textContent = totalPages;
+            lastBtn.addEventListener('click', () => {
+                currentPage = totalPages;
+                renderTable();
+            });
+            pagination.appendChild(lastBtn);
+        }
+
+        // 다음 버튼
+        if (current < totalPages) {
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '다음';
+            nextBtn.addEventListener('click', () => {
+                currentPage = current + 1;
+                renderTable();
+            });
+            pagination.appendChild(nextBtn);
+        }
+
+        return pagination;
     }
 
     /** 5. 상태 업데이트 함수 */
