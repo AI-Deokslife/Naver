@@ -30,7 +30,7 @@ module.exports = async function handler(req, res) {
 
 function getComplexesByRegion(keyword) {
     return new Promise((resolve, reject) => {
-        const cookies = 'NNB=FGYNFS4Y6M6WO; NFS=2; ASID=afd10077000001934e8033f50000004e; ba.uuid=a5e52e8f-1775-4eea-9b42-30223205f9df';
+        const cookies = 'NNB=FGYNFS4Y6M6WO; NFS=2; ASID=afd10077000001934e8033f50000004e; ba.uuid=a5e52e8f-1775-4eea-9b42-30223205f9df; tooltipDisplayed=true; nstore_session=zmRE1M3UHwL1GmMzBg0gfcKH; _fwb=242x1Ggncj6Dnv0G6JF6g8h.1738045585397; landHomeFlashUseYn=N; REALESTATE=Thu Apr 03 2025 20:14:11 GMT+0900 (Korean Standard Time); NACT=1';
         const authorization = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3MzgwNDcxNjMsImV4cCI6MTczODA1Nzk2M30.Heq-J33LY9pJDnYOqmRhTTrSPqCpChtWxka_XUphnd4';
         
         const url = new URL('https://new.land.naver.com/api/search');
