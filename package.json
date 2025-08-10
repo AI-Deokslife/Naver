@@ -2,7 +2,6 @@
   "name": "real-estate-crawler",
   "version": "1.0.0",
   "description": "부동산 크롤러 웹 애플리케이션",
-  "type": "module",
   "scripts": {
     "build": "echo 'No build required'",
     "start": "echo 'Use vercel dev to start development server'"
