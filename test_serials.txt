@@ -1,0 +1,26 @@
+🔑 부동산 크롤러 테스트용 시리얼 번호들
+
+=== 유효한 시리얼 번호 ===
+REAL-A1B2-XYZ5
+REAL-C3D4-ABC8
+ESTA-E5F6-DEF1
+ESTA-G7H8-GHI4
+PROP-I9J0-JKL7
+HOME-K1L2-MNO0
+
+=== 사용법 ===
+1. https://naver-snowy.vercel.app 접속
+2. 위의 시리얼 번호 중 하나 입력
+3. "접속하기" 버튼 클릭
+4. 인증 성공 후 메인 페이지로 이동
+
+=== 참고사항 ===
+- 각 시리얼 번호는 24시간 동안 유효
+- 로그아웃 후 다시 로그인 가능
+- 허용된 제품 코드: REAL, ESTA, PROP, HOME
+- 시리얼 형식: 제품코드-사용자코드-랜덤+체크섬
+
+=== 개발자 정보 ===
+- 체크섬 계산: ASCII 값 합계 % 36
+- localStorage 키: 'real_estate_auth'
+- 세션 지속시간: 24시간

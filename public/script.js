@@ -1,5 +1,8 @@
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 사용자 정보 표시
+    displayUserInfo();
+    
     // DOM 요소 가져오기
     const regionInput = document.getElementById('region-input');
     const searchBtn = document.getElementById('search-btn');
@@ -406,3 +409,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// 전역 함수들 (HTML에서 호출 가능)
+
+/** 로그아웃 함수 */
+function logout() {
+    if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('real_estate_auth');
+        alert('로그아웃 되었습니다.');
+        window.location.href = 'index.html';
+    }
+}
+
+/** 사용자 정보 표시 함수 */
+function displayUserInfo() {
+    const userInfoElement = document.getElementById('userInfo');
+    if (!userInfoElement) return;
+    
+    try {
+        const authData = localStorage.getItem('real_estate_auth');
+        if (authData) {
+            const auth = JSON.parse(atob(authData));
+            const currentTime = Date.now();
+            const remainingHours = Math.round((24 * 60 * 60 * 1000 - (currentTime - auth.timestamp)) / (60 * 60 * 1000));
+            
+            userInfoElement.textContent = `${auth.productCode} 사용자 (${remainingHours}시간 남음)`;
+        }
+    } catch (e) {
+        userInfoElement.textContent = '인증된 사용자';
+    }
+}
