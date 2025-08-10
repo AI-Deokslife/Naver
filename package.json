@@ -4,14 +4,15 @@
   "description": "부동산 크롤러 웹 애플리케이션",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev",
     "build": "echo 'No build required'",
-    "start": "vercel dev"
+    "start": "echo 'Use vercel dev to start development server'"
   },
   "keywords": ["real-estate", "crawler", "vercel"],
   "author": "",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "exceljs": "^4.3.0"
+  },
   "engines": {
     "node": ">=18"
   }
