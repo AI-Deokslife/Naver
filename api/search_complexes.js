@@ -60,10 +60,19 @@ function getComplexesByRegion(keyword) {
             response.on('end', () => {
                 try {
                     const result = JSON.parse(data);
+                    console.log('네이버 API 응답:', JSON.stringify(result, null, 2));
+                    
                     const complexes = result.complexes || [];
+                    console.log('추출된 complexes:', complexes.length, '개');
+                    
+                    if (complexes.length > 0) {
+                        console.log('첫 번째 complex 샘플:', complexes[0]);
+                    }
+                    
                     complexes.sort((a, b) => a.complexName.localeCompare(b.complexName));
                     resolve(complexes);
                 } catch (error) {
+                    console.error('JSON 파싱 실패:', data);
                     reject(new Error(`JSON 파싱 오류: ${error.message}`));
                 }
             });

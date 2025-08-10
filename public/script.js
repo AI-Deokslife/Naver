@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`서버 오류: ${response.statusText}`);
             }
             const complexes = await response.json();
+            console.log('받은 complexes 데이터:', complexes);
 
             if (complexes.length === 0) {
                 updateStatus('해당 지역에 검색된 아파트 단지가 없습니다.', false);
@@ -61,10 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             complexDropdown.innerHTML = ''; // 기존 옵션 삭제
-            complexes.forEach(c => {
+            complexes.forEach((c, index) => {
+                console.log(`Complex ${index}:`, c);
                 const option = document.createElement('option');
                 // complexNo를 option의 value로 저장
                 option.value = c.complexNo;
+                console.log(`Setting option value to: ${c.complexNo}`);
                 option.textContent = `${c.complexName} (${c.address})`
                 complexDropdown.appendChild(option);
             });
@@ -86,7 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const tradeType = tradeTypeDropdown.value;
         const selectedComplexName = complexDropdown.options[complexDropdown.selectedIndex].text;
 
+        console.log('매물 수집 시작:');
+        console.log('- complexNo:', complexNo);
+        console.log('- tradeType:', tradeType);
+        console.log('- selectedComplexName:', selectedComplexName);
+
         if (!complexNo) {
+            console.error('complexNo가 없습니다!');
             alert('아파트 단지를 선택해주세요.');
             return;
         }
