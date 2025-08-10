@@ -1,13 +1,7 @@
 {
   "functions": {
-    "api/search_complexes.py": {
-      "runtime": "python3.9"
-    },
-    "api/fetch_listings.py": {
-      "runtime": "python3.9"
-    },
-    "api/download_excel.py": {
-      "runtime": "python3.9"
+    "api/*.js": {
+      "runtime": "nodejs18.x"
     }
   }
 }
