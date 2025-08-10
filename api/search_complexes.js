@@ -67,6 +67,24 @@ function getComplexesByRegion(keyword) {
                     
                     if (complexes.length > 0) {
                         console.log('첫 번째 complex 샘플:', complexes[0]);
+                        console.log('Available fields:', Object.keys(complexes[0]));
+                        
+                        // complexNo 필드가 없는 경우 대체 필드 찾기
+                        const firstComplex = complexes[0];
+                        if (!firstComplex.complexNo) {
+                            console.log('complexNo 필드가 없습니다. 대체 필드를 찾는 중...');
+                            const possibleIdFields = ['complexId', 'id', 'houseId', 'aptId', 'complexNumber', 'no'];
+                            for (const field of possibleIdFields) {
+                                if (firstComplex[field]) {
+                                    console.log(`대체 필드 발견: ${field} = ${firstComplex[field]}`);
+                                    // 모든 complex 객체에 complexNo 필드 추가
+                                    complexes.forEach(c => {
+                                        c.complexNo = c[field];
+                                    });
+                                    break;
+                                }
+                            }
+                        }
                     }
                     
                     complexes.sort((a, b) => a.complexName.localeCompare(b.complexName));
