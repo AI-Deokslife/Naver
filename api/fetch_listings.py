@@ -109,7 +109,7 @@ def fetch_all_pages(complex_no: str, trade_type_key: str):
     all_data.sort(key=lambda x: x['등록일'] if x['등록일'] else '99999999')
     return all_data
 
-@app.get("/api/fetch_listings")
+@app.get("/")
 async def fetch_listings_api(complex_no: str, trade_type: str):
     if not complex_no or not trade_type:
         raise HTTPException(status_code=400, detail="complex_no와 trade_type을 모두 입력해주세요.")

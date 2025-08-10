@@ -159,7 +159,7 @@ def create_excel_in_memory(data):
     virtual_workbook.seek(0)
     return virtual_workbook, f"{title}.xlsx"
 
-@app.get("/api/download_excel")
+@app.get("/")
 async def download_excel_api(complex_no: str, trade_type: str):
     if not complex_no or not trade_type:
         raise HTTPException(status_code=400, detail="complex_no와 trade_type을 모두 입력해주세요.")

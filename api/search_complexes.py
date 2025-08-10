@@ -47,7 +47,7 @@ def get_complexes_by_region(keyword: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"내부 서버 오류: {e}")
 
-@app.get("/api/search_complexes")
+@app.get("/")
 async def search_complexes_api(keyword: str):
     if not keyword:
         raise HTTPException(status_code=400, detail="'keyword'를 입력해주세요.")
