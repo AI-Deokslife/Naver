@@ -12,22 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let fetchedData = []; // 데이터 수집 결과를 저장할 변수
     let currentPage = 1; // 현재 페이지
-    let itemsPerPage = calculateOptimalPageSize(); // 페이지당 항목 수
+    let itemsPerPage = 20; // 페이지당 항목 수 고정
     let sortColumn = null; // 정렬 중인 컬럼
     let sortDirection = 'asc'; // 정렬 방향
-
-    // 화면 크기에 따른 최적 페이지 크기 계산
-    function calculateOptimalPageSize() {
-        const screenHeight = window.innerHeight;
-        const headerHeight = 200; // 헤더와 컨트롤 영역 높이 예상
-        const rowHeight = 40; // 테이블 행 높이 예상
-        const paginationHeight = 60; // 페이지네이션 높이 예상
-        
-        const availableHeight = screenHeight - headerHeight - paginationHeight;
-        const maxRows = Math.floor(availableHeight / rowHeight);
-        
-        return Math.max(Math.min(maxRows, 100), 10); // 최소 10개, 최대 100개
-    }
 
     // --- 이벤트 리스너 설정 ---
     searchBtn.addEventListener('click', searchComplexes);
@@ -46,18 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     fetchBtn.addEventListener('click', fetchListings);
     downloadBtn.addEventListener('click', downloadExcel);
-    
-    // 화면 크기 변경시 페이지 크기 재계산
-    window.addEventListener('resize', () => {
-        const newPageSize = calculateOptimalPageSize();
-        if (newPageSize !== itemsPerPage) {
-            itemsPerPage = newPageSize;
-            currentPage = 1; // 첫 페이지로 리셋
-            if (fetchedData.length > 0) {
-                renderTable();
-            }
-        }
-    });
 
     // --- 함수 구현 ---
 
