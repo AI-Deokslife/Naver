@@ -114,12 +114,16 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatus(`'${selectedComplexName}' 매물 수집 중... (시간이 걸릴 수 있습니다)`, true);
         fetchBtn.disabled = true;
         downloadBtn.disabled = true;
-        tableContainer.innerHTML = '';
+        tableContainer.innerHTML = '<div class="progress-info"><p>데이터 수집 중입니다. Rate Limiting으로 인해 시간이 걸릴 수 있습니다.</p><p>429 에러 발생 시 자동으로 재시도합니다...</p></div>';
 
         try {
             const response = await fetch(`/api/fetch_listings?complex_no=${complexNo}&trade_type=${tradeType}`);
             if (!response.ok) {
-                throw new Error(`서버 오류: ${response.statusText}`);
+                const errorText = await response.text();
+                if (response.status === 429) {
+                    throw new Error('Too Many Requests - 잠시 후 다시 시도해주세요.');
+                }
+                throw new Error(`서버 오류 (${response.status}): ${errorText}`);
             }
             fetchedData = await response.json();
 

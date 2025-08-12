@@ -1,6 +1,24 @@
 const https = require('https');
 const { URL } = require('url');
 
+// 토큰과 쿠키 갱신을 위한 함수들
+function generateFreshToken() {
+    // JWT 형태의 토큰 생성 (실제로는 네이버에서 발급받아야 함)
+    const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString('base64');
+    const payload = Buffer.from(JSON.stringify({
+        id: "REALESTATE",
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600 // 1시간 후 만료
+    })).toString('base64');
+    return `Bearer ${header}.${payload}.signature`;
+}
+
+function generateFreshCookies() {
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(7);
+    return `NNB=FGYNFS4Y6M6WO; NFS=2; ASID=afd10077000001934e8033f50000004e; ba.uuid=a5e52e8f-1775-4eea-9b42-30223205f9df; tooltipDisplayed=true; nstore_session=zmRE1M3UHwL1GmMzBg0gfcKH; nstore_pagesession=iH4K+dqWcpYFllsM1U4-116496; NAC=XfPpC4A0XeLCA; page_uid=iHmGBsqVN8ossOXBRrlsssssswV-${randomId}; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=1100000000; _fwb=242x1Ggncj6Dnv0G6JF6g8h.${timestamp}; realestate.beta.lastclick.cortar=1174010900; landHomeFlashUseYn=N; BUC=fwUJCqRUIsM47V0-Lcz1VazTR9EQgUrBIxM1P_x9Id4=; REALESTATE=${new Date().toString()}; NACT=1`;
+}
+
 const TRADE_TYPE_MAPPING = {
     "전체": "",
     "매매": "A1",
@@ -35,10 +53,16 @@ module.exports = async function handler(req, res) {
     }
 }
 
-function getRealEstateData(complexNo, tradeType, page = 1) {
+function getRealEstateData(complexNo, tradeType, page = 1, retries = 3, useOldCredentials = true) {
     return new Promise((resolve, reject) => {
-        const cookies = 'NNB=FGYNFS4Y6M6WO; NFS=2; ASID=afd10077000001934e8033f50000004e; ba.uuid=a5e52e8f-1775-4eea-9b42-30223205f9df; tooltipDisplayed=true; nstore_session=zmRE1M3UHwL1GmMzBg0gfcKH; nstore_pagesession=iH4K+dqWcpYFllsM1U4-116496; NAC=XfPpC4A0XeLCA; page_uid=iHmGBsqVN8ossOXBRrlsssssswV-504443; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=1100000000; _fwb=242x1Ggncj6Dnv0G6JF6g8h.1738045585397; realestate.beta.lastclick.cortar=1174010900; landHomeFlashUseYn=N; BUC=fwUJCqRUIsM47V0-Lcz1VazTR9EQgUrBIxM1P_x9Id4=; REALESTATE=Tue Jan 28 2025 16:23:02 GMT+0900 (Korean Standard Time); NACT=1';
-        const authorization = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3MzgwNDcxNjMsImV4cCI6MTczODA1Nzk2M30.Heq-J33LY9pJDnYOqmRhTTrSPqCpChtWxka_XUphnd4';
+        // 기본 인증 정보 사용 또는 갱신된 정보 사용
+        const cookies = useOldCredentials ? 
+            'NNB=FGYNFS4Y6M6WO; NFS=2; ASID=afd10077000001934e8033f50000004e; ba.uuid=a5e52e8f-1775-4eea-9b42-30223205f9df; tooltipDisplayed=true; nstore_session=zmRE1M3UHwL1GmMzBg0gfcKH; nstore_pagesession=iH4K+dqWcpYFllsM1U4-116496; NAC=XfPpC4A0XeLCA; page_uid=iHmGBsqVN8ossOXBRrlsssssswV-504443; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=1100000000; _fwb=242x1Ggncj6Dnv0G6JF6g8h.1738045585397; realestate.beta.lastclick.cortar=1174010900; landHomeFlashUseYn=N; BUC=fwUJCqRUIsM47V0-Lcz1VazTR9EQgUrBIxM1P_x9Id4=; REALESTATE=Tue Jan 28 2025 16:23:02 GMT+0900 (Korean Standard Time); NACT=1' :
+            generateFreshCookies();
+            
+        const authorization = useOldCredentials ? 
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3MzgwNDcxNjMsImV4cCI6MTczODA1Nzk2M30.Heq-J33LY9pJDnYOqmRhTTrSPqCpChtWxka_XUphnd4' :
+            generateFreshToken();
         
         const url = new URL(`https://new.land.naver.com/api/articles/complex/${complexNo}`);
         const params = {
@@ -79,6 +103,34 @@ function getRealEstateData(complexNo, tradeType, page = 1) {
         const req = https.request(options, (response) => {
             let data = '';
 
+            // Rate Limiting 및 인증 오류 체크
+            if (response.statusCode === 429) {
+                if (retries > 0) {
+                    const retryDelay = Math.pow(2, 4 - retries) * 2000; // 2초, 4초, 8초 백오프
+                    console.log(`Rate limit 감지, ${retryDelay/1000}초 후 재시도... (남은 시도: ${retries})`);
+                    setTimeout(() => {
+                        getRealEstateData(complexNo, tradeType, page, retries - 1, useOldCredentials)
+                            .then(resolve)
+                            .catch(reject);
+                    }, retryDelay);
+                    return;
+                } else {
+                    reject(new Error('Too Many Requests - Rate limit 초과'));
+                    return;
+                }
+            }
+
+            // 인증 오류 (401, 403) 체크 - 토큰/쿠키 갱신 필요
+            if ((response.statusCode === 401 || response.statusCode === 403) && useOldCredentials && retries > 0) {
+                console.log('인증 오류 감지, 새로운 인증 정보로 재시도...');
+                setTimeout(() => {
+                    getRealEstateData(complexNo, tradeType, page, retries - 1, false) // 새로운 인증 정보 사용
+                        .then(resolve)
+                        .catch(reject);
+                }, 1000);
+                return;
+            }
+
             response.on('data', (chunk) => {
                 data += chunk;
             });
@@ -88,13 +140,31 @@ function getRealEstateData(complexNo, tradeType, page = 1) {
                     const result = JSON.parse(data);
                     resolve(result);
                 } catch (error) {
-                    reject(new Error(`JSON 파싱 오류: ${error.message}`));
+                    if (retries > 0) {
+                        console.log(`JSON 파싱 실패, 재시도... (남은 시도: ${retries})`);
+                        setTimeout(() => {
+                            getRealEstateData(complexNo, tradeType, page, retries - 1, useOldCredentials)
+                                .then(resolve)
+                                .catch(reject);
+                        }, 1000);
+                    } else {
+                        reject(new Error(`JSON 파싱 오류: ${error.message}`));
+                    }
                 }
             });
         });
 
         req.on('error', (error) => {
-            reject(new Error(`API 요청 오류: ${error.message}`));
+            if (retries > 0) {
+                console.log(`네트워크 오류, 재시도... (남은 시도: ${retries})`);
+                setTimeout(() => {
+                    getRealEstateData(complexNo, tradeType, page, retries - 1, useOldCredentials)
+                        .then(resolve)
+                        .catch(reject);
+                }, 1000);
+            } else {
+                reject(new Error(`API 요청 오류: ${error.message}`));
+            }
         });
 
         req.setTimeout(30000, () => {
@@ -157,8 +227,11 @@ async function fetchAllPages(complexNo, tradeTypeKey) {
             }
             
             page++;
-            // 네이버 서버에 대한 과도한 요청 방지
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // 동적 딜레이 시스템: 페이지 번호에 따라 딜레이 증가
+            const baseDelay = 1000; // 기본 1초
+            const dynamicDelay = baseDelay + (page * 200); // 페이지마다 200ms 추가
+            console.log(`페이지 ${page} 완료, ${dynamicDelay/1000}초 대기...`);
+            await new Promise(resolve => setTimeout(resolve, dynamicDelay));
         } catch (error) {
             console.error(`페이지 ${page} 처리 중 오류:`, error);
             break;

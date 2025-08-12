@@ -48,6 +48,27 @@ header h1 {
     margin: 0;
 }
 
+/* 진행 상황 표시 스타일 */
+.progress-info {
+    text-align: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.progress-info p {
+    margin: 8px 0;
+    color: var(--secondary-text);
+    font-size: 14px;
+}
+
+.progress-info p:first-child {
+    font-weight: 500;
+    color: var(--primary-text);
+}
+
 header p {
     font-size: 14px;
     color: var(--secondary-text);
