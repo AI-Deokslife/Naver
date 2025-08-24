@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부동산 검색 서비스</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏠 부동산 검색 서비스</h1>
+            <p>네이버 부동산 데이터 검색 및 엑셀 다운로드</p>
+        </header>
+
+        <main>
+            <!-- 검색 섹션 -->
+            <section class="search-section">
+                <h2>🔍 아파트 검색</h2>
+                <div class="search-form">
+                    <input type="text" id="searchKeyword" placeholder="아파트명을 입력하세요 (예: 래미안, 자이)" />
+                    <button id="searchBtn">검색</button>
+                </div>
+                <div id="searchResults" class="results-container"></div>
+            </section>
+
+            <!-- 매물 조회 섹션 -->
+            <section class="listing-section">
+                <h2>📋 매물 조회</h2>
+                <div class="listing-form">
+                    <input type="text" id="complexNo" placeholder="복합단지번호 입력" />
+                    <select id="tradeType">
+                        <option value="전체">전체</option>
+                        <option value="매매">매매</option>
+                        <option value="전세">전세</option>
+                        <option value="월세">월세</option>
+                    </select>
+                    <button id="fetchBtn">매물 조회</button>
+                    <button id="downloadBtn" style="display: none;">엑셀 다운로드</button>
+                </div>
+                <div id="listingResults" class="results-container"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 부동산 검색 서비스. 데이터 출처: 네이버 부동산</p>
+        </footer>
+    </div>
+
+    <!-- 로딩 스피너 -->
+    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p>데이터를 불러오는 중...</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
