@@ -123,7 +123,7 @@ function processData(data) {
     for (const article of articles) {
         const tags = article.tagList ? article.tagList.join(', ') : '';
         const processedArticle = {
-            '순번': 'N/A', // 나중에 순번 추가
+            '순번': 'N/A',
             '아파트명': article.articleName,
             '거래유형': article.tradeTypeName,
             '층수': article.floorInfo,
