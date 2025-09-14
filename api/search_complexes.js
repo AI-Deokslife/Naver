@@ -26,11 +26,19 @@ module.exports = async function handler(req, res) {
         const searchResults = await searchComplexes(keyword);
         res.status(200).json(searchResults);
     } catch (error) {
-        console.error('검색 오류:', error);
+        console.error('=== 검색 오류 상세 정보 ===');
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('Error name:', error.name);
+
         if (error.message.includes('Too Many Requests')) {
             res.status(429).json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' });
         } else {
-            res.status(500).json({ error: `검색 중 오류 발생: ${error.message}` });
+            res.status(500).json({
+                error: `검색 중 오류 발생: ${error.message}`,
+                details: error.stack,
+                timestamp: new Date().toISOString()
+            });
         }
     }
 }
@@ -44,13 +52,8 @@ function searchComplexes(keyword, retries = 3) {
 
         const cookies = `NNB=FGYNFS4Y6M6WO; NFS=2; ASID=afd10077000001934e8033f50000004e; ba.uuid=a5e52e8f-1775-4eea-9b42-30223205f9df; tooltipDisplayed=true; nstore_session=zmRE1M3UHwL1GmMzBg0gfcKH; nstore_pagesession=iH4K+dqWcpYFllsM1U4-116496; NAC=XfPpC4A0XeLCA; page_uid=iHmGBsqVN8ossOXBRrlsssssswV-504443; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=1100000000; _fwb=242x1Ggncj6Dnv0G6JF6g8h.${currentTimestamp}; realestate.beta.lastclick.cortar=1174010900; landHomeFlashUseYn=N; BUC=fwUJCqRUIsM47V0-Lcz1VazTR9EQgUrBIxM1P_x9Id4=; REALESTATE=${currentTime}; NACT=1`;
 
-        // 새로운 JWT 토큰 생성 (현재 시간 기반)
-        const tokenPayload = Buffer.from(JSON.stringify({
-            "id": "REALESTATE",
-            "iat": Math.floor(Date.now() / 1000),
-            "exp": Math.floor(Date.now() / 1000) + 10800
-        })).toString('base64');
-        const authorization = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${tokenPayload}.Heq-J33LY9pJDnYOqmRhTTrSPqCpChtWxka_XUphnd4`;
+        // 간단히 고정 토큰 사용 (복잡한 동적 생성으로 인한 오류 방지)
+        const authorization = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3MzgwNDcxNjMsImV4cCI6MTczODA1Nzk2M30.Heq-J33LY9pJDnYOqmRhTTrSPqCpChtWxka_XUphnd4';
         
         const url = new URL('https://new.land.naver.com/api/search');
         const params = {
@@ -59,6 +62,10 @@ function searchComplexes(keyword, retries = 3) {
         };
 
         Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+
+        console.log(`[INFO] 검색 키워드: ${keyword}`);
+        console.log(`[INFO] 쿠키 길이: ${cookies.length}`);
+        console.log(`[INFO] Authorization: ${authorization.substring(0, 50)}...`);
 
         // 먼저 세션 초기화를 위해 /complexes 페이지 방문 (Flask 앱 방식)
         const initOptions = {
