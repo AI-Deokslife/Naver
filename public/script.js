@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Vercel 환경에서는 상대 경로로 API 호출이 가능합니다.
             const response = await fetch(`/api/search_complexes?keyword=${encodeURIComponent(keyword)}`);
             if (!response.ok) {
+                if (response.status === 429) {
+                    throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
+                }
                 throw new Error(`서버 오류: ${response.statusText}`);
             }
             const complexes = await response.json();
