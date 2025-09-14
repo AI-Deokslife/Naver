@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부동산 크롤러 - 접속 인증</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 부동산 데이터 수집기</h1>
+        <p class="subtitle">시리얼 번호로 안전하게 접속하세요</p>
+
+        <div class="auth-card">
+            <div class="form-group">
+                <label for="serialNumber">시리얼 번호 입력</label>
+                <input type="text" 
+                       id="serialNumber" 
+                       placeholder="예: REAL-1234-ABC5" 
+                       maxlength="14"
+                       autocomplete="off">
+            </div>
+            
+            <div class="serial-format">
+                <strong>형식:</strong> 제품코드-사용자코드-랜덤코드<br>
+                <strong>예시:</strong> REAL-A1B2-XYZ5
+            </div>
+
+            <button class="auth-btn" onclick="authenticate()">
+                🔓 접속하기
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">인증 중...</p>
+            </div>
+
+            <div class="result" id="authResult"></div>
+        </div>
+
+        <footer>
+            <p>© 2025 부동산 크롤러 | Made By Deuk ❁´◡`❁</p>
+        </footer>
+    </div>
+
+    <script>
+        // 시리얼 번호 검증 상수
+        const PRODUCT_CODE_LEN = 4;
+        const USER_CODE_LEN = 4;
+        const RANDOM_PART_LEN = 3;
+        const CHECKSUM_BASE = 36;
+        const CHAR_SOURCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        
+        // 허용된 제품 코드들
+        const ALLOWED_PRODUCT_CODES = ['REAL', 'ESTA', 'PROP', 'HOME'];
+
+        /**
+         * 체크섬을 계산합니다.
+         */
+        function calculateChecksum(data) {
+            let checksumValue = 0;
+            for (let i = 0; i < data.length; i++) {
+                checksumValue += data.charCodeAt(i);
+            }
+            checksumValue %= CHECKSUM_BASE;
+
+            if (checksumValue < 10) {
+                return String(checksumValue);
+            } else {
+                return String.fromCharCode(checksumValue - 10 + 'A'.charCodeAt(0));
+            }
+        }
+
+        /**
+         * 시리얼 번호 형식 및 체크섬 검증
+         */
+        function validateSerial(serial) {
+            try {
+                const parts = serial.split('-');
+                if (parts.length !== 3) {
+                    return { valid: false, reason: '형식이 올바르지 않습니다. (XXX-XXXX-XXXX 형식)' };
+                }
+
+                const [productCode, userCode, lastPart] = parts;
+
+                // 길이 검증
+                if (productCode.length !== PRODUCT_CODE_LEN || 
+                    userCode.length !== USER_CODE_LEN || 
+                    lastPart.length !== RANDOM_PART_LEN + 1) {
+                    return { valid: false, reason: '각 부분의 길이가 올바르지 않습니다.' };
+                }
+
+                // 허용된 제품 코드 확인
+                if (!ALLOWED_PRODUCT_CODES.includes(productCode.toUpperCase())) {
+                    return { valid: false, reason: '허용되지 않은 제품 코드입니다.' };
+                }
+
+                // 체크섬 검증
+                const randomPart = lastPart.substring(0, RANDOM_PART_LEN);
+                const checksum = lastPart.substring(RANDOM_PART_LEN);
+                const rawData = productCode + userCode + randomPart;
+                const expectedChecksum = calculateChecksum(rawData);
+
+                if (checksum !== expectedChecksum) {
+                    return { valid: false, reason: '시리얼 번호가 유효하지 않습니다.' };
+                }
+
+                return { valid: true, reason: '유효한 시리얼 번호입니다.' };
+            } catch (e) {
+                return { valid: false, reason: '시리얼 번호 형식이 올바르지 않습니다.' };
+            }
+        }
+
+        /**
+         * 인증 처리 함수
+         */
+        async function authenticate() {
+            const serialInput = document.getElementById('serialNumber');
+            const resultDiv = document.getElementById('authResult');
+            const loadingDiv = document.getElementById('loading');
+            const authBtn = document.querySelector('.auth-btn');
+            
+            const serial = serialInput.value.trim().toUpperCase();
+            
+            if (!serial) {
+                showResult('error', '시리얼 번호를 입력해주세요.');
+                return;
+            }
+
+            // 로딩 표시
+            loadingDiv.classList.add('show');
+            authBtn.disabled = true;
+            resultDiv.innerHTML = '';
+
+            // 약간의 지연 (실제 인증하는 느낌)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // 시리얼 번호 검증
+            const validation = validateSerial(serial);
+            
+            loadingDiv.classList.remove('show');
+            authBtn.disabled = false;
+
+            if (validation.valid) {
+                // 인증 성공
+                const authData = {
+                    serial: serial,
+                    timestamp: Date.now(),
+                    productCode: serial.split('-')[0]
+                };
+                
+                localStorage.setItem('real_estate_auth', btoa(JSON.stringify(authData)));
+                
+                showResult('success', '✅ 인증 성공! 잠시후 이동합니다...');
+                
+                // 2초 후 메인 페이지로 이동
+                setTimeout(() => {
+                    window.location.href = 'main.html';
+                }, 2000);
+                
+            } else {
+                // 인증 실패
+                showResult('error', '❌ ' + validation.reason);
+                serialInput.focus();
+            }
+        }
+
+        /**
+         * 결과 메시지 표시
+         */
+        function showResult(type, message) {
+            const resultDiv = document.getElementById('authResult');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+        }
+
+        /**
+         * Enter 키 이벤트 처리
+         */
+        document.getElementById('serialNumber').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                authenticate();
+            }
+        });
+
+        /**
+         * 입력값 자동 포맷팅 (대문자 변환, 하이픈 자동 추가)
+         */
+        document.getElementById('serialNumber').addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            
+            // 자동으로 하이픈 추가
+            if (value.length > 4) {
+                value = value.substring(0, 4) + '-' + value.substring(4);
+            }
+            if (value.length > 9) {
+                value = value.substring(0, 9) + '-' + value.substring(9);
+            }
+            
+            e.target.value = value;
+        });
+
+        // 페이지 로드 시 기존 인증 확인
+        window.addEventListener('load', function() {
+            const existingAuth = localStorage.getItem('real_estate_auth');
+            if (existingAuth) {
+                try {
+                    const authData = JSON.parse(atob(existingAuth));
+                    const currentTime = Date.now();
+                    
+                    // 24시간 이내면 자동으로 메인 페이지로
+                    if (currentTime - authData.timestamp < 24 * 60 * 60 * 1000) {
+                        showResult('success', '✅ 이미 인증됨. 메인 페이지로 이동합니다...');
+                        setTimeout(() => {
+                            window.location.href = 'main.html';
+                        }, 1500);
+                        return;
+                    }
+                } catch (e) {
+                    localStorage.removeItem('real_estate_auth');
+                }
+            }
+            
+            // 입력 필드에 포커스
+            document.getElementById('serialNumber').focus();
+        });
+    </script>
+</body>
+</html>
