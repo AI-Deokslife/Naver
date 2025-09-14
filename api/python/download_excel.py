@@ -24,6 +24,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+proxies = {
+    'http': None,
+    'https': None,
+}
+
 TRADE_TYPE_MAPPING = {
     "전체": "",
     "매매": "A1",
@@ -65,6 +70,7 @@ def get_real_estate_data(complex_no: str, trade_type: str, page: int = 1):
         session = requests.Session()
         session.headers.update(headers)
         session.cookies.update(cookies)
+        session.proxies.update(proxies)
 
         # 세션 초기화
         init_url = f'https://new.land.naver.com/complexes/{complex_no}'

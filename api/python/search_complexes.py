@@ -18,6 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+proxies = {
+    'http': None,
+    'https': None,
+}
+
 def get_complexes_by_region(keyword: str):
     """네이버 부동산 API를 통해 아파트 단지 검색"""
     try:
@@ -45,6 +50,7 @@ def get_complexes_by_region(keyword: str):
         session = requests.Session()
         session.headers.update(headers)
         session.cookies.update(cookies)
+        session.proxies.update(proxies) # Added this line
         
         # 세션 초기화
         init_url = 'https://new.land.naver.com/complexes'
