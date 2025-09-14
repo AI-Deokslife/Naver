@@ -1,445 +1,256 @@
+// DOM 요소들
+const searchKeyword = document.getElementById('searchKeyword');
+const searchBtn = document.getElementById('searchBtn');
+const searchResults = document.getElementById('searchResults');
+const complexNo = document.getElementById('complexNo');
+const tradeType = document.getElementById('tradeType');
+const fetchBtn = document.getElementById('fetchBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const listingResults = document.getElementById('listingResults');
+const loadingSpinner = document.getElementById('loadingSpinner');
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 사용자 정보 표시
-    displayUserInfo();
+// 현재 매물 데이터 저장
+let currentListingData = [];
+
+// 로딩 상태 관리
+function showLoading() {
+    loadingSpinner.style.display = 'flex';
+}
+
+function hideLoading() {
+    loadingSpinner.style.display = 'none';
+}
+
+// 에러 메시지 표시
+function showError(container, message) {
+    container.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+}
+
+// 성공 메시지 표시
+function showSuccess(container, message) {
+    container.innerHTML = `<div class="success-message">✅ ${message}</div>`;
+}
+
+// API 기본 URL
+const API_BASE = window.location.origin;
+
+// 아파트 검색 함수
+async function searchComplexes() {
+    const keyword = searchKeyword.value.trim();
     
-    // DOM 요소 가져오기
-    const regionInput = document.getElementById('region-input');
-    const searchBtn = document.getElementById('search-btn');
-    const complexDropdown = document.getElementById('complex-dropdown');
-    const tradeTypeDropdown = document.getElementById('trade-type-dropdown');
-    const fetchBtn = document.getElementById('fetch-btn');
-    const downloadBtn = document.getElementById('download-btn');
-    const statusText = document.getElementById('status-text');
-    const tableContainer = document.getElementById('table-container');
+    if (!keyword) {
+        showError(searchResults, '검색어를 입력해주세요.');
+        return;
+    }
 
-    let fetchedData = []; // 데이터 수집 결과를 저장할 변수
-    let currentPage = 1; // 현재 페이지
-    let itemsPerPage = 20; // 페이지당 항목 수 고정
-    let sortColumn = null; // 정렬 중인 컬럼
-    let sortDirection = 'asc'; // 정렬 방향
+    showLoading();
+    searchBtn.disabled = true;
 
-    // --- 이벤트 리스너 설정 ---
-    searchBtn.addEventListener('click', searchComplexes);
-    regionInput.addEventListener('keyup', (event) => {
-        if (event.key === 'Enter') {
-            searchComplexes();
+    try {
+        const response = await fetch(`${API_BASE}/api/search_complexes?keyword=${encodeURIComponent(keyword)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-    });
-    complexDropdown.addEventListener('change', () => {
-        if (complexDropdown.value) {
-            fetchBtn.disabled = false;
+        
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            showError(searchResults, '검색 결과가 없습니다.');
         } else {
-            fetchBtn.disabled = true;
+            displaySearchResults(data);
         }
-        downloadBtn.disabled = true; // 단지 선택이 바뀌면 다운로드 버튼 비활성화
-    });
-    fetchBtn.addEventListener('click', fetchListings);
-    downloadBtn.addEventListener('click', downloadExcel);
-
-    // --- 함수 구현 ---
-
-    /** 1. 지역 검색 함수 */
-    async function searchComplexes() {
-        const keyword = regionInput.value.trim();
-        if (!keyword) {
-            alert('지역명을 입력해주세요.');
-            return;
-        }
-
-        updateStatus('지역 검색 중...', true);
-        complexDropdown.innerHTML = '<option>검색 중...</option>';
-        complexDropdown.disabled = true;
-        fetchBtn.disabled = true;
-        downloadBtn.disabled = true;
-
-        try {
-            // Vercel 환경에서는 상대 경로로 API 호출이 가능합니다.
-            const response = await fetch(`/api/search_complexes?keyword=${encodeURIComponent(keyword)}`);
-            if (!response.ok) {
-                throw new Error(`서버 오류: ${response.statusText}`);
-            }
-            const complexes = await response.json();
-            console.log('받은 complexes 데이터:', complexes);
-
-            if (complexes.length === 0) {
-                updateStatus('해당 지역에 검색된 아파트 단지가 없습니다.', false);
-                complexDropdown.innerHTML = '<option value="">검색 결과 없음</option>';
-                return;
-            }
-
-            complexDropdown.innerHTML = ''; // 기존 옵션 삭제
-            complexes.forEach((c, index) => {
-                console.log(`Complex ${index}:`, c);
-                const option = document.createElement('option');
-                
-                // complexNo 대신 다른 ID 필드 사용 (API에서 자동 매핑됨)
-                const complexId = c.complexNo || c.complexId || c.id || c.houseId || c.aptId || index;
-                option.value = complexId;
-                console.log(`Setting option value to: ${complexId}`);
-                
-                // 고유번호 및 괄호 제거, 아파트명만 표시
-                option.textContent = c.complexName;
-                complexDropdown.appendChild(option);
-            });
-
-            complexDropdown.disabled = false;
-            fetchBtn.disabled = false;
-            updateStatus(`'${keyword}' 검색 완료. ${complexes.length}개 단지 발견.`, false);
-
-        } catch (error) {
-            console.error('지역 검색 오류:', error);
-            updateStatus('지역 검색 중 오류가 발생했습니다.', false);
-            complexDropdown.innerHTML = '<option value="">오류 발생</option>';
-        }
+    } catch (error) {
+        console.error('검색 오류:', error);
+        showError(searchResults, `검색 중 오류 발생: ${error.message}`);
+    } finally {
+        hideLoading();
+        searchBtn.disabled = false;
     }
+}
 
-    /** 2. 매물 정보 수집 함수 */
-    async function fetchListings() {
-        const complexNo = complexDropdown.value;
-        const tradeType = tradeTypeDropdown.value;
-        const selectedComplexName = complexDropdown.options[complexDropdown.selectedIndex].text;
-
-        console.log('매물 수집 시작:');
-        console.log('- complexNo:', complexNo);
-        console.log('- tradeType:', tradeType);
-        console.log('- selectedComplexName:', selectedComplexName);
-
-        if (!complexNo) {
-            console.error('complexNo가 없습니다!');
-            alert('아파트 단지를 선택해주세요.');
-            return;
-        }
-
-        updateStatus(`'${selectedComplexName}' 매물 수집 중... (시간이 걸릴 수 있습니다)`, true);
-        fetchBtn.disabled = true;
-        downloadBtn.disabled = true;
-        tableContainer.innerHTML = '<div class="progress-info"><p>데이터 수집 중입니다. Rate Limiting으로 인해 시간이 걸릴 수 있습니다.</p><p>429 에러 발생 시 자동으로 재시도합니다...</p></div>';
-
-        try {
-            const response = await fetch(`/api/fetch_listings?complex_no=${complexNo}&trade_type=${tradeType}`);
-            if (!response.ok) {
-                const errorText = await response.text();
-                if (response.status === 429) {
-                    throw new Error('Too Many Requests - 잠시 후 다시 시도해주세요.');
-                }
-                throw new Error(`서버 오류 (${response.status}): ${errorText}`);
-            }
-            fetchedData = await response.json();
-
-            if (fetchedData.length === 0) {
-                updateStatus('해당 조건의 매물이 없습니다.', false);
-                tableContainer.innerHTML = '<p>조건에 맞는 매물이 없습니다.</p>';
-                return;
-            }
-
-            currentPage = 1; // 새 데이터 시 첫 페이지로
-            renderTable();
-            updateStatus(`총 ${fetchedData.length}개의 매물을 찾았습니다.`, false);
-            downloadBtn.disabled = false;
-
-        } catch (error) {
-            console.error('매물 수집 오류:', error);
-            updateStatus('매물 수집 중 오류가 발생했습니다.', false);
-        } finally {
-            fetchBtn.disabled = false;
-        }
-    }
-
-    /** 3. 엑셀 다운로드 함수 */
-    function downloadExcel() {
-        const complexNo = complexDropdown.value;
-        const tradeType = tradeTypeDropdown.value;
-
-        if (!complexNo) {
-            alert('아파트 단지를 선택해주세요.');
-            return;
-        }
-        if (fetchedData.length === 0) {
-            alert('먼저 데이터를 수집해주세요.');
-            return;
-        }
-
-        const downloadUrl = `/api/download_excel?complex_no=${complexNo}&trade_type=${tradeType}`;
-        // 새 창이나 현재 창에서 URL을 열어 다운로드 트리거
-        window.location.href = downloadUrl;
-        updateStatus('엑셀 파일을 다운로드합니다.', false);
-    }
-
-    /** 4. 데이터 정렬 함수 */
-    function sortData(column) {
-        if (sortColumn === column) {
-            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-            sortColumn = column;
-            sortDirection = 'asc';
-        }
-
-        fetchedData.sort((a, b) => {
-            let valueA = a[column] || '';
-            let valueB = b[column] || '';
-
-            // 숫자인 경우 숫자 비교
-            if (!isNaN(valueA) && !isNaN(valueB)) {
-                valueA = parseFloat(valueA);
-                valueB = parseFloat(valueB);
-            }
-
-            if (sortDirection === 'asc') {
-                return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
-            } else {
-                return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
-            }
-        });
-
-        currentPage = 1; // 정렬 후 첫 페이지로
-        renderTable();
-    }
-
-    /** 5. 테이블 렌더링 함수 (페이지네이션 포함) */
-    function renderTable() {
-        if (fetchedData.length === 0) return;
-
-        // 페이지네이션 계산
-        const totalItems = fetchedData.length;
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-        const currentData = fetchedData.slice(startIndex, endIndex);
-
-        // 테이블 생성
-        const table = document.createElement('table');
-        table.className = 'data-table';
-
-        // 헤더 생성 - 순번 추가하고 특징설명 제외
-        const originalHeaders = Object.keys(fetchedData[0]);
-        const headers = ['순번', ...originalHeaders.filter(h => h !== '특징설명')];
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        
-        headers.forEach(header => {
-            const th = document.createElement('th');
-            th.textContent = header;
-            
-            if (header !== '순번') {
-                th.style.cursor = 'pointer';
-                th.className = 'sortable-header';
-                
-                // 현재 정렬 중인 컬럼 표시
-                if (sortColumn === header) {
-                    th.textContent += sortDirection === 'asc' ? ' ↑' : ' ↓';
-                    th.classList.add('sorted');
-                }
-                
-                th.addEventListener('click', () => sortData(header));
-            }
-            
-            headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-
-        // 데이터 행 생성
-        const tbody = document.createElement('tbody');
-        currentData.forEach((item, index) => {
-            const row = document.createElement('tr');
-            row.style.cursor = 'pointer';
-            row.addEventListener('click', () => showFeaturePopup(item));
-            
-            headers.forEach(header => {
-                const td = document.createElement('td');
-                if (header === '순번') {
-                    td.textContent = startIndex + index + 1;
-                } else {
-                    td.textContent = item[header] || '';
-                }
-                row.appendChild(td);
-            });
-            tbody.appendChild(row);
-        });
-
-        table.appendChild(thead);
-        table.appendChild(tbody);
-
-        // 페이지네이션 컨트롤 생성
-        const pagination = createPagination(totalPages, currentPage);
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'table-info';
-        infoDiv.textContent = `${startIndex + 1}-${endIndex} / 총 ${totalItems}개 (${totalPages}페이지)`;
-
-        // 컨테이너 업데이트
-        tableContainer.innerHTML = '';
-        tableContainer.appendChild(infoDiv);
-        tableContainer.appendChild(table);
-        tableContainer.appendChild(pagination);
-    }
-
-    /** 6. 페이지네이션 컨트롤 생성 */
-    function createPagination(totalPages, current) {
-        const pagination = document.createElement('div');
-        pagination.className = 'pagination';
-
-        // 이전 버튼
-        if (current > 1) {
-            const prevBtn = document.createElement('button');
-            prevBtn.textContent = '이전';
-            prevBtn.addEventListener('click', () => {
-                currentPage = current - 1;
-                renderTable();
-            });
-            pagination.appendChild(prevBtn);
-        }
-
-        // 페이지 번호 버튼들
-        const startPage = Math.max(1, current - 2);
-        const endPage = Math.min(totalPages, current + 2);
-
-        if (startPage > 1) {
-            const firstBtn = document.createElement('button');
-            firstBtn.textContent = '1';
-            firstBtn.addEventListener('click', () => {
-                currentPage = 1;
-                renderTable();
-            });
-            pagination.appendChild(firstBtn);
-            
-            if (startPage > 2) {
-                const dots = document.createElement('span');
-                dots.textContent = '...';
-                pagination.appendChild(dots);
-            }
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            const pageBtn = document.createElement('button');
-            pageBtn.textContent = i;
-            if (i === current) {
-                pageBtn.classList.add('active');
-            }
-            pageBtn.addEventListener('click', () => {
-                currentPage = i;
-                renderTable();
-            });
-            pagination.appendChild(pageBtn);
-        }
-
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                const dots = document.createElement('span');
-                dots.textContent = '...';
-                pagination.appendChild(dots);
-            }
-            
-            const lastBtn = document.createElement('button');
-            lastBtn.textContent = totalPages;
-            lastBtn.addEventListener('click', () => {
-                currentPage = totalPages;
-                renderTable();
-            });
-            pagination.appendChild(lastBtn);
-        }
-
-        // 다음 버튼
-        if (current < totalPages) {
-            const nextBtn = document.createElement('button');
-            nextBtn.textContent = '다음';
-            nextBtn.addEventListener('click', () => {
-                currentPage = current + 1;
-                renderTable();
-            });
-            pagination.appendChild(nextBtn);
-        }
-
-        return pagination;
-    }
-
-    /** 7. 특징설명 팝업 함수 */
-    function showFeaturePopup(item) {
-        const featureDesc = item['특징설명'] || '특징설명이 없습니다.';
-        const apartmentName = item['아파트명'] || '매물';
-        const floor = item['층수'] || '';
-        const area = item['면적(m²)'] || '';
-        
-        // 기존 팝업이 있다면 제거
-        const existingPopup = document.querySelector('.feature-popup');
-        if (existingPopup) {
-            existingPopup.remove();
-        }
-        
-        // 팝업 생성
-        const popup = document.createElement('div');
-        popup.className = 'feature-popup';
-        popup.innerHTML = `
-            <div class="popup-overlay">
-                <div class="popup-content">
-                    <div class="popup-header">
-                        <h3>${apartmentName} ${floor} ${area}</h3>
-                        <button class="close-btn">&times;</button>
-                    </div>
-                    <div class="popup-body">
-                        <h4>매물 특징설명</h4>
-                        <p>${featureDesc}</p>
-                    </div>
+// 검색 결과 표시
+function displaySearchResults(results) {
+    const resultsHtml = `
+        <h3>🏘️ 검색 결과 (${results.length}건)</h3>
+        <div class="results-grid">
+            ${results.map(result => `
+                <div class="result-card" onclick="selectComplex('${result.복합단지번호}', '${result.아파트명}')">
+                    <h3>${result.아파트명}</h3>
+                    <p>📍 ${result.주소}</p>
+                    <p>🏢 복합단지번호: <span class="complex-no">${result.복합단지번호}</span></p>
                 </div>
-            </div>
-        `;
-        
-        document.body.appendChild(popup);
-        
-        // 닫기 이벤트
-        const closeBtn = popup.querySelector('.close-btn');
-        const overlay = popup.querySelector('.popup-overlay');
-        
-        closeBtn.addEventListener('click', () => popup.remove());
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) popup.remove();
-        });
-        
-        // ESC 키로 닫기
-        document.addEventListener('keydown', function escHandler(e) {
-            if (e.key === 'Escape') {
-                popup.remove();
-                document.removeEventListener('keydown', escHandler);
-            }
-        });
+            `).join('')}
+        </div>
+    `;
+    searchResults.innerHTML = resultsHtml;
+}
+
+// 아파트 선택
+function selectComplex(complexNumber, complexName) {
+    complexNo.value = complexNumber;
+    showSuccess(listingResults, `"${complexName}" 선택됨. 거래유형을 선택하고 매물 조회 버튼을 클릭하세요.`);
+    
+    // 매물 조회 섹션으로 스크롤
+    document.querySelector('.listing-section').scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+    });
+}
+
+// 매물 조회 함수
+async function fetchListings() {
+    const complexNumber = complexNo.value.trim();
+    const selectedTradeType = tradeType.value;
+    
+    if (!complexNumber) {
+        showError(listingResults, '복합단지번호를 입력하거나 위에서 아파트를 선택해주세요.');
+        return;
     }
 
-    /** 8. 상태 업데이트 함수 */
-    function updateStatus(message, isLoading) {
-        statusText.textContent = message;
-        if (isLoading) {
-            statusText.style.color = 'var(--accent-color-2)';
-        } else {
-            statusText.style.color = 'var(--primary-text)';
+    showLoading();
+    fetchBtn.disabled = true;
+    downloadBtn.style.display = 'none';
+    currentListingData = [];
+
+    try {
+        const response = await fetch(`${API_BASE}/api/fetch_listings?complex_no=${complexNumber}&trade_type=${encodeURIComponent(selectedTradeType)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            showError(listingResults, '해당 조건의 매물이 없습니다.');
+        } else {
+            currentListingData = data;
+            displayListingResults(data);
+            downloadBtn.style.display = 'inline-block';
+        }
+    } catch (error) {
+        console.error('매물 조회 오류:', error);
+        showError(listingResults, `매물 조회 중 오류 발생: ${error.message}`);
+    } finally {
+        hideLoading();
+        fetchBtn.disabled = false;
+    }
+}
+
+// 매물 결과 표시
+function displayListingResults(listings) {
+    if (!listings || listings.length === 0) {
+        showError(listingResults, '표시할 매물 데이터가 없습니다.');
+        return;
+    }
+
+    const headers = Object.keys(listings[0]);
+    
+    const tableHtml = `
+        <h3>🏠 매물 조회 결과 (${listings.length}건)</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        ${headers.map(header => `<th>${header}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${listings.map(listing => `
+                        <tr>
+                            ${headers.map(header => `<td>${listing[header] || ''}</td>`).join('')}
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    listingResults.innerHTML = tableHtml;
+}
+
+// 엑셀 다운로드 함수
+async function downloadExcel() {
+    const complexNumber = complexNo.value.trim();
+    const selectedTradeType = tradeType.value;
+    
+    if (!complexNumber) {
+        showError(listingResults, '복합단지번호를 입력해주세요.');
+        return;
+    }
+
+    showLoading();
+    downloadBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE}/api/download_excel?complex_no=${complexNumber}&trade_type=${encodeURIComponent(selectedTradeType)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // Blob으로 응답 받기
+        const blob = await response.blob();
+        
+        // Content-Disposition 헤더에서 파일명 추출
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = '부동산_데이터.xlsx';
+        
+        if (contentDisposition) {
+            const matches = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+            if (matches && matches[1]) {
+                filename = decodeURIComponent(matches[1]);
+            }
+        }
+        
+        // 파일 다운로드
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showSuccess(listingResults, `엑셀 파일 "${filename}" 다운로드 완료! 📥`);
+        
+    } catch (error) {
+        console.error('엑셀 다운로드 오류:', error);
+        showError(listingResults, `엑셀 다운로드 중 오류 발생: ${error.message}`);
+    } finally {
+        hideLoading();
+        downloadBtn.disabled = false;
+    }
+}
+
+// 이벤트 리스너 등록
+searchBtn.addEventListener('click', searchComplexes);
+fetchBtn.addEventListener('click', fetchListings);
+downloadBtn.addEventListener('click', downloadExcel);
+
+// Enter 키 이벤트 처리
+searchKeyword.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        searchComplexes();
     }
 });
 
-// 전역 함수들 (HTML에서 호출 가능)
-
-/** 로그아웃 함수 */
-function logout() {
-    if (confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('real_estate_auth');
-        alert('로그아웃 되었습니다.');
-        window.location.href = 'index.html';
+complexNo.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        fetchListings();
     }
-}
+});
 
-/** 사용자 정보 표시 함수 */
-function displayUserInfo() {
-    const userInfoElement = document.getElementById('userInfo');
-    if (!userInfoElement) return;
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('부동산 검색 서비스가 로드되었습니다.');
     
-    try {
-        const authData = localStorage.getItem('real_estate_auth');
-        if (authData) {
-            const auth = JSON.parse(atob(authData));
-            const currentTime = Date.now();
-            const remainingHours = Math.round((24 * 60 * 60 * 1000 - (currentTime - auth.timestamp)) / (60 * 60 * 1000));
-            
-            userInfoElement.textContent = `${auth.productCode} 사용자 (${remainingHours}시간 남음)`;
-        }
-    } catch (e) {
-        userInfoElement.textContent = '인증된 사용자';
+    // URL 파라미터 체크 (복합단지번호가 있으면 자동 입력)
+    const urlParams = new URLSearchParams(window.location.search);
+    const complexParam = urlParams.get('complex_no');
+    if (complexParam) {
+        complexNo.value = complexParam;
     }
-}
+});

@@ -3,449 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부동산 크롤러 - 접속 인증</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-
-        :root {
-            --bg-color: #FDF6E3;
-            --container-bg: #FFFFFF;
-            --primary-text: #5D576B;
-            --secondary-text: #8a81a0;
-            --accent-color-1: #A8DADC;
-            --accent-color-2: #457B9D;
-            --accent-color-1-dark: #82c9c9;
-            --font-family: 'Noto Sans KR', sans-serif;
-            --border-color: #e0e0e0;
-            --success-bg: #e7f5e8;
-            --success-text: #2d6a32;
-            --error-bg: #fdecea;
-            --error-text: #a32a29;
-        }
-
-        body {
-            font-family: var(--font-family);
-            background: linear-gradient(135deg, var(--bg-color) 0%, #f0f2f5 100%);
-            color: var(--primary-text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .container {
-            background: var(--container-bg);
-            padding: 3rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--accent-color-1), var(--accent-color-2));
-        }
-
-        h1 {
-            color: var(--primary-text);
-            margin-bottom: 0.5rem;
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        .subtitle {
-            color: var(--secondary-text);
-            margin-bottom: 2.5rem;
-            font-size: 1rem;
-        }
-
-        .auth-card {
-            background: #fafafa;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            position: relative;
-        }
-
-        .auth-card::before {
-            content: '🔐';
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--container-bg);
-            padding: 0 10px;
-            font-size: 1.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--primary-text);
-            font-size: 0.95rem;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 1rem;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 1px;
-            box-sizing: border-box;
-            transition: border-color 0.3s, box-shadow 0.3s;
-            text-transform: uppercase;
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: var(--accent-color-2);
-            box-shadow: 0 0 0 3px rgba(69, 123, 157, 0.1);
-        }
-
-        input[type="text"]::placeholder {
-            text-transform: none;
-            opacity: 0.6;
-        }
-
-        .auth-btn {
-            background: linear-gradient(135deg, var(--accent-color-2), var(--accent-color-1-dark));
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            width: 100%;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .auth-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(69, 123, 157, 0.3);
-        }
-
-        .auth-btn:active {
-            transform: translateY(0);
-        }
-
-        .result {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            min-height: 20px;
-            transition: all 0.3s;
-        }
-
-        .result.success {
-            background-color: var(--success-bg);
-            color: var(--success-text);
-            border: 1px solid #c6e6c7;
-        }
-
-        .result.error {
-            background-color: var(--error-bg);
-            color: var(--error-text);
-            border: 1px solid #f5b7b1;
-        }
-
-        .serial-format {
-            background: #f8f9fa;
-            border-left: 4px solid var(--accent-color-2);
-            padding: 1rem;
-            margin: 1.5rem 0;
-            border-radius: 0 8px 8px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            color: var(--secondary-text);
-        }
-
-        .loading {
-            display: none;
-            margin-top: 1rem;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--accent-color-2);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        footer {
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.8rem;
-            color: var(--secondary-text);
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 2rem 1.5rem;
-                margin: 10px;
-            }
-            
-            h1 {
-                font-size: 1.7rem;
-            }
-        }
-    </style>
+    <title>부동산 검색 서비스</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>🏠 부동산 데이터 수집기</h1>
-        <p class="subtitle">시리얼 번호로 안전하게 접속하세요</p>
+        <header>
+            <h1>🏠 부동산 검색 서비스</h1>
+            <p>네이버 부동산 데이터 검색 및 엑셀 다운로드</p>
+        </header>
 
-        <div class="auth-card">
-            <div class="form-group">
-                <label for="serialNumber">시리얼 번호 입력</label>
-                <input type="text" 
-                       id="serialNumber" 
-                       placeholder="예: REAL-1234-ABC5" 
-                       maxlength="14"
-                       autocomplete="off">
-            </div>
-            
-            <div class="serial-format">
-                <strong>형식:</strong> 제품코드-사용자코드-랜덤코드<br>
-                <strong>예시:</strong> REAL-A1B2-XYZ5
-            </div>
+        <main>
+            <!-- 검색 섹션 -->
+            <section class="search-section">
+                <h2>🔍 아파트 검색</h2>
+                <div class="search-form">
+                    <input type="text" id="searchKeyword" placeholder="아파트명을 입력하세요 (예: 래미안, 자이)" />
+                    <button id="searchBtn">검색</button>
+                </div>
+                <div id="searchResults" class="results-container"></div>
+            </section>
 
-            <button class="auth-btn" onclick="authenticate()">
-                🔓 접속하기
-            </button>
-
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p style="margin-top: 10px;">인증 중...</p>
-            </div>
-
-            <div class="result" id="authResult"></div>
-        </div>
+            <!-- 매물 조회 섹션 -->
+            <section class="listing-section">
+                <h2>📋 매물 조회</h2>
+                <div class="listing-form">
+                    <input type="text" id="complexNo" placeholder="복합단지번호 입력" />
+                    <select id="tradeType">
+                        <option value="전체">전체</option>
+                        <option value="매매">매매</option>
+                        <option value="전세">전세</option>
+                        <option value="월세">월세</option>
+                    </select>
+                    <button id="fetchBtn">매물 조회</button>
+                    <button id="downloadBtn" style="display: none;">엑셀 다운로드</button>
+                </div>
+                <div id="listingResults" class="results-container"></div>
+            </section>
+        </main>
 
         <footer>
-            <p>© 2025 부동산 크롤러 | Made By Deuk ❁´◡`❁</p>
+            <p>&copy; 2025 부동산 검색 서비스. 데이터 출처: 네이버 부동산</p>
         </footer>
     </div>
 
-    <script>
-        // 시리얼 번호 검증 상수
-        const PRODUCT_CODE_LEN = 4;
-        const USER_CODE_LEN = 4;
-        const RANDOM_PART_LEN = 3;
-        const CHECKSUM_BASE = 36;
-        const CHAR_SOURCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        
-        // 허용된 제품 코드들
-        const ALLOWED_PRODUCT_CODES = ['REAL', 'ESTA', 'PROP', 'HOME'];
+    <!-- 로딩 스피너 -->
+    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p>데이터를 불러오는 중...</p>
+    </div>
 
-        /**
-         * 체크섬을 계산합니다.
-         */
-        function calculateChecksum(data) {
-            let checksumValue = 0;
-            for (let i = 0; i < data.length; i++) {
-                checksumValue += data.charCodeAt(i);
-            }
-            checksumValue %= CHECKSUM_BASE;
-
-            if (checksumValue < 10) {
-                return String(checksumValue);
-            } else {
-                return String.fromCharCode(checksumValue - 10 + 'A'.charCodeAt(0));
-            }
-        }
-
-        /**
-         * 시리얼 번호 형식 및 체크섬 검증
-         */
-        function validateSerial(serial) {
-            try {
-                const parts = serial.split('-');
-                if (parts.length !== 3) {
-                    return { valid: false, reason: '형식이 올바르지 않습니다. (XXX-XXXX-XXXX 형식)' };
-                }
-
-                const [productCode, userCode, lastPart] = parts;
-
-                // 길이 검증
-                if (productCode.length !== PRODUCT_CODE_LEN || 
-                    userCode.length !== USER_CODE_LEN || 
-                    lastPart.length !== RANDOM_PART_LEN + 1) {
-                    return { valid: false, reason: '각 부분의 길이가 올바르지 않습니다.' };
-                }
-
-                // 허용된 제품 코드 확인
-                if (!ALLOWED_PRODUCT_CODES.includes(productCode.toUpperCase())) {
-                    return { valid: false, reason: '허용되지 않은 제품 코드입니다.' };
-                }
-
-                // 체크섬 검증
-                const randomPart = lastPart.substring(0, RANDOM_PART_LEN);
-                const checksum = lastPart.substring(RANDOM_PART_LEN);
-                const rawData = productCode + userCode + randomPart;
-                const expectedChecksum = calculateChecksum(rawData);
-
-                if (checksum !== expectedChecksum) {
-                    return { valid: false, reason: '시리얼 번호가 유효하지 않습니다.' };
-                }
-
-                return { valid: true, reason: '유효한 시리얼 번호입니다.' };
-            } catch (e) {
-                return { valid: false, reason: '시리얼 번호 형식이 올바르지 않습니다.' };
-            }
-        }
-
-        /**
-         * 인증 처리 함수
-         */
-        async function authenticate() {
-            const serialInput = document.getElementById('serialNumber');
-            const resultDiv = document.getElementById('authResult');
-            const loadingDiv = document.getElementById('loading');
-            const authBtn = document.querySelector('.auth-btn');
-            
-            const serial = serialInput.value.trim().toUpperCase();
-            
-            if (!serial) {
-                showResult('error', '시리얼 번호를 입력해주세요.');
-                return;
-            }
-
-            // 로딩 표시
-            loadingDiv.classList.add('show');
-            authBtn.disabled = true;
-            resultDiv.innerHTML = '';
-
-            // 약간의 지연 (실제 인증하는 느낌)
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // 시리얼 번호 검증
-            const validation = validateSerial(serial);
-            
-            loadingDiv.classList.remove('show');
-            authBtn.disabled = false;
-
-            if (validation.valid) {
-                // 인증 성공
-                const authData = {
-                    serial: serial,
-                    timestamp: Date.now(),
-                    productCode: serial.split('-')[0]
-                };
-                
-                localStorage.setItem('real_estate_auth', btoa(JSON.stringify(authData)));
-                
-                showResult('success', '✅ 인증 성공! 잠시후 이동합니다...');
-                
-                // 2초 후 메인 페이지로 이동
-                setTimeout(() => {
-                    window.location.href = 'main.html';
-                }, 2000);
-                
-            } else {
-                // 인증 실패
-                showResult('error', '❌ ' + validation.reason);
-                serialInput.focus();
-            }
-        }
-
-        /**
-         * 결과 메시지 표시
-         */
-        function showResult(type, message) {
-            const resultDiv = document.getElementById('authResult');
-            resultDiv.textContent = message;
-            resultDiv.className = `result ${type}`;
-        }
-
-        /**
-         * Enter 키 이벤트 처리
-         */
-        document.getElementById('serialNumber').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                authenticate();
-            }
-        });
-
-        /**
-         * 입력값 자동 포맷팅 (대문자 변환, 하이픈 자동 추가)
-         */
-        document.getElementById('serialNumber').addEventListener('input', function(e) {
-            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-            
-            // 자동으로 하이픈 추가
-            if (value.length > 4) {
-                value = value.substring(0, 4) + '-' + value.substring(4);
-            }
-            if (value.length > 9) {
-                value = value.substring(0, 9) + '-' + value.substring(9);
-            }
-            
-            e.target.value = value;
-        });
-
-        // 페이지 로드 시 기존 인증 확인
-        window.addEventListener('load', function() {
-            const existingAuth = localStorage.getItem('real_estate_auth');
-            if (existingAuth) {
-                try {
-                    const authData = JSON.parse(atob(existingAuth));
-                    const currentTime = Date.now();
-                    
-                    // 24시간 이내면 자동으로 메인 페이지로
-                    if (currentTime - authData.timestamp < 24 * 60 * 60 * 1000) {
-                        showResult('success', '✅ 이미 인증됨. 메인 페이지로 이동합니다...');
-                        setTimeout(() => {
-                            window.location.href = 'main.html';
-                        }, 1500);
-                        return;
-                    }
-                } catch (e) {
-                    localStorage.removeItem('real_estate_auth');
-                }
-            }
-            
-            // 입력 필드에 포커스
-            document.getElementById('serialNumber').focus();
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>

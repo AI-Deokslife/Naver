@@ -1,5 +1,8 @@
 # Dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Environment variables
 .env
@@ -25,9 +28,6 @@ Thumbs.db
 
 # Logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Cache
 .cache/
@@ -37,6 +37,7 @@ yarn-error.log*
 dist/
 build/
 out/
+.vercel/
 
 # Temporary files
 *.tmp
