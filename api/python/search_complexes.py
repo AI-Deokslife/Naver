@@ -19,12 +19,19 @@ app.add_middleware(
 )
 
 def get_complexes_by_region(keyword: str):
+    """네이버 부동산 API를 통해 아파트 단지 검색"""
     try:
         cookies = {
             'NNB': 'FGYNFS4Y6M6WO',
             'NFS': '2',
             'ASID': 'afd10077000001934e8033f50000004e',
             'ba.uuid': 'a5e52e8f-1775-4eea-9b42-30223205f9df',
+            'tooltipDisplayed': 'true',
+            'nstore_session': 'zmRE1M3UHwL1GmMzBg0gfcKH',
+            '_fwb': '242x1Ggncj6Dnv0G6JF6g8h.1738045585397',
+            'landHomeFlashUseYn': 'N',
+            'REALESTATE': 'Thu Apr 03 2025 20:14:11 GMT+0900 (Korean Standard Time)',
+            'NACT': '1',
         }
         headers = {
             'accept': '*/*',
@@ -35,11 +42,23 @@ def get_complexes_by_region(keyword: str):
         params = {'keyword': keyword, 'page': '1'}
         url = 'https://new.land.naver.com/api/search'
         
-        response = requests.get(url, params=params, cookies=cookies, headers=headers, timeout=30, verify=False)
-        response.raise_for_status()
+        session = requests.Session()
+        session.headers.update(headers)
+        session.cookies.update(cookies)
         
+        # 세션 초기화
+        init_url = 'https://new.land.naver.com/complexes'
+        init_response = session.get(init_url, verify=False, timeout=10)
+        init_response.raise_for_status()
+            
+        response = session.get(url, params=params, verify=False, timeout=10)
+        response.raise_for_status()
+            
         data = response.json()
         complexes = data.get('complexes', [])
+        if not complexes:
+            return []
+            
         complexes.sort(key=lambda x: x['complexName'])
         return complexes
     except requests.exceptions.RequestException as e:

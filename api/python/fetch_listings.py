@@ -31,12 +31,16 @@ def get_real_estate_data(complex_no: str, trade_type: str, page: int = 1):
         cookies = {
             'NNB': 'FGYNFS4Y6M6WO',
             'REALESTATE': 'Tue Jan 28 2025 16:23:02 GMT+0900 (Korean Standard Time)',
+            'NFS': '2',
+            'ASID': 'afd10077000001934e8033f50000004e',
+            'ba.uuid': 'a5e52e8f-1775-4eea-9b42-30223205f9df',
         }
         headers = {
             'accept': '*/*',
             'accept-language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
             'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3MzgwNDcxNjMsImV4cCI6MTczODA1Nzk2M30.Heq-J33LY9pJDnYOqmRhTTrSPqCpChtWxka_XUphnd4',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'referer': f'https://new.land.naver.com/complexes/{complex_no}',
         }
         params = {
             'realEstateType': 'APT:PRE:ABYG:JGC',
@@ -57,7 +61,17 @@ def get_real_estate_data(complex_no: str, trade_type: str, page: int = 1):
             'order': 'rank'
         }
         url = f'https://new.land.naver.com/api/articles/complex/{complex_no}'
-        response = requests.get(url, params=params, cookies=cookies, headers=headers, timeout=30, verify=False)
+        
+        session = requests.Session()
+        session.headers.update(headers)
+        session.cookies.update(cookies)
+
+        # 세션 초기화
+        init_url = f'https://new.land.naver.com/complexes/{complex_no}'
+        init_response = session.get(init_url, verify=False, timeout=10)
+        init_response.raise_for_status()
+
+        response = session.get(url, params=params, timeout=30, verify=False)
         response.raise_for_status()
         return response.json()
     except Exception as e:
