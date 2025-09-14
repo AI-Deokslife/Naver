@@ -2,8 +2,8 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/*.js",
-      "use": "@vercel/node"
+      "src": "api/python/*.py",
+      "use": "@vercel/python"
     },
     {
       "src": "public/**/*",
@@ -12,23 +12,20 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "src": "/api/search_complexes",
+      "dest": "/api/python/search_complexes.py"
+    },
+    {
+      "src": "/api/fetch_listings",
+      "dest": "/api/python/fetch_listings.py"
+    },
+    {
+      "src": "/api/download_excel",
+      "dest": "/api/python/download_excel.py"
     },
     {
       "src": "/(.*)",
       "dest": "/public/$1"
     }
-  ],
-  "functions": {
-    "api/search_complexes.js": {
-      "maxDuration": 30
-    },
-    "api/fetch_listings.js": {
-      "maxDuration": 60
-    },
-    "api/download_excel.js": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
