@@ -1,1 +1,32 @@
-{}
+{
+  "framework": null,
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/python/*.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/search_complexes",
+      "dest": "/api/python/search_complexes.py"
+    },
+    {
+      "src": "/api/fetch_listings",
+      "dest": "/api/python/fetch_listings.py"
+    },
+    {
+      "src": "/api/download_excel",
+      "dest": "/api/python/download_excel.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
+}
