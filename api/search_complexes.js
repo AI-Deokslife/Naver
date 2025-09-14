@@ -20,8 +20,8 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        // Rate limiting을 위한 기본 지연 추가 (30초로 증가)
-        await new Promise(resolve => setTimeout(resolve, 30000));
+        // Rate limiting을 위한 기본 지연 추가 (Vercel timeout 고려하여 5초로 조정)
+        await new Promise(resolve => setTimeout(resolve, 5000));
 
         const searchResults = await searchComplexes(keyword);
         res.status(200).json(searchResults);
@@ -38,8 +38,19 @@ module.exports = async function handler(req, res) {
 function searchComplexes(keyword, retries = 3) {
     return new Promise((resolve, reject) => {
         // Flask 앱에서 사용하는 더 상세한 쿠키 설정
-        const cookies = 'NNB=FGYNFS4Y6M6WO; NFS=2; ASID=afd10077000001934e8033f50000004e; ba.uuid=a5e52e8f-1775-4eea-9b42-30223205f9df; tooltipDisplayed=true; nstore_session=zmRE1M3UHwL1GmMzBg0gfcKH; nstore_pagesession=iH4K+dqWcpYFllsM1U4-116496; NAC=XfPpC4A0XeLCA; page_uid=iHmGBsqVN8ossOXBRrlsssssswV-504443; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=1100000000; _fwb=242x1Ggncj6Dnv0G6JF6g8h.1738045585397; realestate.beta.lastclick.cortar=1174010900; landHomeFlashUseYn=N; BUC=fwUJCqRUIsM47V0-Lcz1VazTR9EQgUrBIxM1P_x9Id4=; REALESTATE=Tue Jan 28 2025 16:23:02 GMT+0900 (Korean Standard Time); NACT=1';
-        const authorization = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3MzgwNDcxNjMsImV4cCI6MTczODA1Nzk2M30.Heq-J33LY9pJDnYOqmRhTTrSPqCpChtWxka_XUphnd4';
+        // 동적으로 생성되는 쿠키와 토큰 (현재 시간 기반)
+        const currentTime = new Date().toUTCString();
+        const currentTimestamp = Date.now();
+
+        const cookies = `NNB=FGYNFS4Y6M6WO; NFS=2; ASID=afd10077000001934e8033f50000004e; ba.uuid=a5e52e8f-1775-4eea-9b42-30223205f9df; tooltipDisplayed=true; nstore_session=zmRE1M3UHwL1GmMzBg0gfcKH; nstore_pagesession=iH4K+dqWcpYFllsM1U4-116496; NAC=XfPpC4A0XeLCA; page_uid=iHmGBsqVN8ossOXBRrlsssssswV-504443; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=1100000000; _fwb=242x1Ggncj6Dnv0G6JF6g8h.${currentTimestamp}; realestate.beta.lastclick.cortar=1174010900; landHomeFlashUseYn=N; BUC=fwUJCqRUIsM47V0-Lcz1VazTR9EQgUrBIxM1P_x9Id4=; REALESTATE=${currentTime}; NACT=1`;
+
+        // 새로운 JWT 토큰 생성 (현재 시간 기반)
+        const tokenPayload = Buffer.from(JSON.stringify({
+            "id": "REALESTATE",
+            "iat": Math.floor(Date.now() / 1000),
+            "exp": Math.floor(Date.now() / 1000) + 10800
+        })).toString('base64');
+        const authorization = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${tokenPayload}.Heq-J33LY9pJDnYOqmRhTTrSPqCpChtWxka_XUphnd4`;
         
         const url = new URL('https://new.land.naver.com/api/search');
         const params = {
